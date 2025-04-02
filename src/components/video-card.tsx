@@ -31,15 +31,12 @@ const VideoCard: FC<VideoCardProps> = ({ title, description, url }) => {
     setIsDialogOpen(open);
 
     if (!open) {
-      // Reset state when dialog closes
       if (videoRef.current) {
         videoRef.current.pause();
       }
       setBuffering(false);
-      // Re-enable body scroll
       document.body.style.overflow = "";
     } else {
-      // Disable body scroll when dialog is open
       document.body.style.overflow = "hidden";
     }
   };
@@ -69,22 +66,6 @@ const VideoCard: FC<VideoCardProps> = ({ title, description, url }) => {
 
   const handleWaiting = () => setBuffering(true);
   const handlePlaying = () => setBuffering(false);
-
-  // Force video to play when dialog opens
-  useEffect(() => {
-    if (isDialogOpen && videoRef.current) {
-      const timer = setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.controls = true;
-          videoRef.current.play().catch((err) => {
-            console.log("Auto-play prevented:", err);
-          });
-        }
-      }, 500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [isDialogOpen]);
 
   // Toggle fullscreen
   const toggleFullscreen = () => {
@@ -118,7 +99,7 @@ const VideoCard: FC<VideoCardProps> = ({ title, description, url }) => {
                   poster={`${url}?thumb`}
                   preload="none"
                 >
-                  <source src={url} type="video/quicktime" />
+                  <source src={url} type="video/mp4" />
                 </video>
               </AspectRatio>
             </div>
@@ -159,7 +140,7 @@ const VideoCard: FC<VideoCardProps> = ({ title, description, url }) => {
                   onPlaying={handlePlaying}
                   playsInline
                 >
-                  <source src={url} type="video/quicktime" />
+                  <source src={url} type="video/mp4" />
                   Your browser does not support the video tag.
                 </video>
               )}

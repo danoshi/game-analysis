@@ -15,7 +15,7 @@ export const videos: Video[] = [
     Beim gegnerischen Pressing nicht nervös werden, auf den Ball steigen, sich zurückdrehen und die Breite suchen, weil sie die Mitte stark besetzen. Außerdem sind in solchen Situationen Kommandos extrem wichtig, sowie das Entgegengehen mit Tempo.
     Zu beachten ist außerdem, dass die Gegner den Ball oft mit der Ferse abspielen, was auch in anderen Ausschnitten zu sehen sein wird. Das heißt: Bewegung ohne Ball sowie das Folgen des Gegenspielers ist extrem wichtig.
     `,
-    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/pressing_klosterneuburg.mov`,
+    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/pressing_klosterneuburg.mp4`,
   },
   {
     id: 2,
@@ -27,7 +27,7 @@ export const videos: Video[] = [
     
     Bei hohem Pressing: ein langer Ball auf unseren Stürmer und schnelles Umschalten, um einen Konter einzuleiten. Außerdem dürfen wir als IV nicht nervös werden. Denn anstatt den hohen Ball zu spielen, können wir genauso gut auf den Ball steigen und die Seite wechseln, da sie das Spiel komplett auf eine Seite verlagern und beim Pressing mit hohem Tempo agieren. Das bedeutet, dass sie bei einer einfachen Körperfinte nicht schnell reagieren können.
     `,
-    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/pressing_2_klosterneuburg.mov`,
+    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/pressing_2_klosterneuburg.mp4`,
   },
   {
     id: 3,
@@ -39,7 +39,7 @@ Fazit für uns:
 
 Ruhig bleiben beim Herausspielen sowie viel Bewegung ohne Ball. Wenn wir den Ball auf unsere Art herausspielen (wie am Montag im Training). Die Annahme muss sauber sein und eher nach außen erfolgen. Wenn die Annahme nach innen geht, müssen wir mit Tempo in den Ball gehen.
 `,
-    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/pressing_3_klosterneuburg.mov`,
+    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/pressing_3_klosterneuburg.mp4`,
   },
   {
     id: 4,
@@ -51,7 +51,7 @@ Fazit für uns:
 
 Druck ausüben, falls der Pass in die Tiefe gespielt wird, damit der Stürmer sich nicht drehen und den Ball auch nicht weiterleiten kann. Seine einzige Möglichkeit soll der Pass zurück sein. Wenn der Pass zu ihrem 6er (ihre Nummer 7) gespielt wird, starten wir einen Pressingversuch.
 `,
-    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/aufbauspiel_klosterneuburg.mov`,
+    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/aufbauspiel_klosterneuburg.mp4`,
   },
   {
     id: 5,
@@ -63,7 +63,7 @@ Fazit für uns:
 
 Wenn wir einen IV pressen, muss die Mitte besetzt sein. Wir dürfen nicht zulassen, dass die Abstände zwischen Sturm, Mittelfeld und Verteidigung zu groß werden. Falls es jedoch zu einem hohen Ball kommt, dürfen wir nicht nur mitlaufen; wir müssen den hohen Ball 'schneiden' (antizipieren) und in den Ball laufen, damit es gar nicht erst zu einer Annahme durch den Stürmer kommt.
 `,
-    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/aufbauspiel_2_klosterneuburg.mov`,
+    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/aufbauspiel_2_klosterneuburg.mp4`,
   },
   {
     id: 6,
@@ -75,7 +75,7 @@ Fazit für uns:
 
 Enger bei den Gegenspielern. Wir dürfen ihnen keinen Platz zum Atmen lassen. Der Pass zum AV muss schon abgefangen werden.
 `,
-    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/aufbauspiel_3_klosterneuburg.mov`,
+    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/aufbauspiel_3_klosterneuburg.mp4`,
   },
   {
     id: 7,
@@ -87,7 +87,7 @@ Fazit für uns:
 
 Wenn der Ball hoch gespielt wird, darf es nie passieren, dass unsere IV in einer 2-gegen-2-Situation sind. Zweitens: Wir lassen den Ball auf keinen Fall aufkommen. Drittens: Zweite Bälle müssen uns gehören.
 `,
-    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/aufbauspiel_4_klosterneuburg.mov`,
+    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/aufbauspiel_4_klosterneuburg.mp4`,
   },
   {
     id: 8,
@@ -99,7 +99,7 @@ Fazit für uns:
 
 Gegner nicht aus den Augen lassen. Wenn ihr das Video stoppt und euch die ersten drei Sekunden anschaut: Der Lok-Spieler verliert den Zweikampf, hat nur Augen für den Ball, während ihr Stürmer schon auf den Lauf spekuliert und bereits zwei Meter im Vorteil ist. Das Gleiche gilt bei der Rückwärtsbewegung: Den Gegner nie aus den Augen verlieren!
 `,
-    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/aufbauspiel_5_klosterneuburg.mov`,
+    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/aufbauspiel_5_klosterneuburg.mp4`,
   },
   {
     id: 9,
@@ -111,7 +111,7 @@ Fazit für uns:
 
 Wie auch in den anderen Situationen: Den Gegner nicht aus den Augen verlieren und ihm immer Gegendruck geben. Wir dürfen ihnen weder Platz noch Zeit zum Nachdenken geben.
 `,
-    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/aufbauspiel_6_klosterneuburg.mov`,
+    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/aufbauspiel_6_klosterneuburg.mp4`,
   },
   {
     id: 10,
@@ -119,7 +119,7 @@ Wie auch in den anderen Situationen: Den Gegner nicht aus den Augen verlieren un
     description: `
     Eine Ballstafette von Klosterneuburg soll zeigen, wie sie auf dem Spielfeld agieren, und uns ein Gefühl dafür geben, auf was wir uns bezüglich Laufwegen und Pressing einstellen müssen.
     `,
-    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/aufbauspiel_7_klosterneuburg.mov`,
+    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/aufbauspiel_7_klosterneuburg.mp4`,
   },
   {
     id: 11,
@@ -131,7 +131,7 @@ Fazit für uns:
 
 Wenn der Stürmer den AV nach innen zieht, heißt das höchstwahrscheinlich, dass ihr AV den Weg auf die Seite suchen wird. Diese Situation sieht ziemlich einstudiert aus. Auf die Fersenpässe achten! Außerdem muss unser Flügelspieler hier Defensivarbeit leisten und zurückkommen.
     `,
-    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/konter_angriff_klosterneuburg.mov`,
+    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/konter_angriff_klosterneuburg.mp4`,
   },
   {
     id: 12,
@@ -143,7 +143,7 @@ Fazit für uns:
 
 Bei Kontern darauf achten, wo sich ihr Stürmer fallen lässt, und den Passweg zu ihm abfangen. Außerdem notfalls die Gelbe Karte für ein taktisches Foul riskieren, um den Angriff zu stoppen.
     `,
-    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/konter_angriff_2_klosterneuburg.mov`,
+    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/konter_angriff_2_klosterneuburg.mp4`,
   },
   {
     id: 13,
@@ -155,7 +155,7 @@ Fazit für uns:
 
 Den Ball in solchen Situationen nicht aufkommen lassen! Lieber nach hinten köpfen oder einer muss tiefer stehen, anstatt dann ins Laufduell zu geraten.
     `,
-    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/konter_angriff_3_klosterneuburg.mov`,
+    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/konter_angriff_3_klosterneuburg.mp4`,
   },
   {
     id: 14,
@@ -167,7 +167,7 @@ Fazit für uns:
 
 Wieder gilt: Die Abstände zwischen Stürmer und IV müssen minimal sein. Er darf keine Zeit haben, den Ball so anzunehmen und dann abzuwarten, bis seine Mitspieler nachkommen.
     `,
-    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/konter_angriff_4_klosterneuburg.mov`,
+    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/konter_angriff_4_klosterneuburg.mp4`,
   },
   {
     id: 15,
@@ -175,7 +175,7 @@ Wieder gilt: Die Abstände zwischen Stürmer und IV müssen minimal sein. Er dar
     description: `
    Fazit für uns: Wenn der Stürmer zur Ecke geht, heißt das, dass sie den Eckball wahrscheinlich kurz ausführen.
     `,
-    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/eckball_klosterneuburg.mov`,
+    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/eckball_klosterneuburg.mp4`,
   },
   {
     id: 16,
@@ -183,7 +183,7 @@ Wieder gilt: Die Abstände zwischen Stürmer und IV müssen minimal sein. Er dar
     description: `
    Fazit für uns: Einer steht am Sechzehner (Strafraumgrenze), um einen (kurzen) Pass dorthin zu verhindern.
     `,
-    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/eckball_2_klosterneuburg.mov`,
+    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/eckball_2_klosterneuburg.mp4`,
   },
   {
     id: 17,
@@ -191,6 +191,6 @@ Wieder gilt: Die Abstände zwischen Stürmer und IV müssen minimal sein. Er dar
     description: `
    Fazit für uns: Den zweiten Pfosten verteidigen.
     `,
-    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/eckball_3_klosterneuburg.mov`,
+    url: `${CLOUDFRONT_URL}/dsg-klosterneuburg/eckball_3_klosterneuburg.mp4`,
   },
 ];
