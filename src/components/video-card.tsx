@@ -36,8 +36,20 @@ const VideoCard: FC<VideoCardProps> = ({ title, description, url }) => {
         videoRef.current.pause();
       }
       setBuffering(false);
+      // Re-enable body scroll
+      document.body.style.overflow = "";
+    } else {
+      // Disable body scroll when dialog is open
+      document.body.style.overflow = "hidden";
     }
   };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
 
   // Video event handlers
   const handleVideoLoadStart = () => setIsLoading(true);
@@ -61,16 +73,11 @@ const VideoCard: FC<VideoCardProps> = ({ title, description, url }) => {
   // Force video to play when dialog opens
   useEffect(() => {
     if (isDialogOpen && videoRef.current) {
-      // Small delay to ensure DOM is ready
       const timer = setTimeout(() => {
         if (videoRef.current) {
-          // Explicitly set controls attribute
           videoRef.current.controls = true;
-
-          // Try to play the video
           videoRef.current.play().catch((err) => {
             console.log("Auto-play prevented:", err);
-            // This is expected on some browsers that block autoplay
           });
         }
       }, 500);
@@ -125,12 +132,11 @@ const VideoCard: FC<VideoCardProps> = ({ title, description, url }) => {
         </DialogTrigger>
       </Card>
 
-      <DialogContent className="sm:max-w-[80vw] p-0">
+      <DialogContent className="w-full h-[100dvh] p-0 max-w-none sm:max-w-[80vw] sm:h-auto sm:max-h-[90vh] overflow-y-auto">
         <DialogTitle className="sr-only">{title}</DialogTitle>
         <div ref={containerRef} className="relative">
-          <AspectRatio ratio={16 / 9}>
+          <AspectRatio ratio={16 / 9} className="sm:max-h-[70vh]">
             <div className="relative w-full h-full">
-              {/* Loading or buffering overlay */}
               {(isLoading || buffering) && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 z-10">
                   <Loader2 className="h-12 w-12 animate-spin text-white mb-4" />
@@ -140,7 +146,6 @@ const VideoCard: FC<VideoCardProps> = ({ title, description, url }) => {
                 </div>
               )}
 
-              {/* Video element */}
               {isDialogOpen && (
                 <video
                   ref={videoRef}
@@ -159,7 +164,6 @@ const VideoCard: FC<VideoCardProps> = ({ title, description, url }) => {
                 </video>
               )}
 
-              {/* Fullscreen button */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -172,8 +176,8 @@ const VideoCard: FC<VideoCardProps> = ({ title, description, url }) => {
           </AspectRatio>
         </div>
 
-        <div className="p-6 bg-brown/5">
-          <h2 className="text-2xl font-bold mb-4">{title}</h2>
+        <div className="p-4 sm:p-6 bg-brown/5 overflow-y-auto">
+          <h2 className="text-xl sm:text-2xl font-bold mb-4">{title}</h2>
           <div className="prose prose-sm max-w-none">
             {formattedDescription.map((paragraph, index) => (
               <div key={index} className="mb-4">
