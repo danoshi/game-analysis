@@ -1,30 +1,54 @@
-import { FC } from "react";
-import VideoGrid from "./components/video-grid";
-import SearchBar from "./components/search-bar";
-import { useVideoFilter } from "./hooks/use-video-filter";
-import { videos } from "./data/videos";
-import { ModeToggle } from "./components/theme/mode-toggle";
+import { useState } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useLocation,
+  useNavigate,
+} from "react-router";
+import { MainLayout } from "./components/layouts";
+import DashboardPage from "./pages/dashboard";
+import GamesPage from "./pages/videos";
+import VideoAnalysisPage from "./pages/videos/[id]";
+import { routes } from "./config/route";
+import TeamsPage from "./pages/team";
+import TeamDetailPage from "./pages/team/[id]";
 
-const App: FC = () => {
-  const { setSearchTerm, filteredVideos } = useVideoFilter(videos);
+// Create a wrapper component to access router context
+function AppContent() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [activePath, setActivePath] = useState(location.pathname);
+
+  const handleRouteChange = (path: string) => {
+    setActivePath(path);
+    navigate(path);
+  };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex items-center justify-between py-4">
-          <h1 className="text-2xl font-bold">Video Analysis</h1>
-          <ModeToggle />
-        </div>
-        <div className="container pb-4">
-          <SearchBar onSearch={setSearchTerm} />
-        </div>
-      </header>
-
-      <main className="container py-8">
-        <VideoGrid videos={filteredVideos} />
-      </main>
-    </div>
+    <MainLayout
+      routes={routes}
+      activePath={activePath}
+      onRouteChange={handleRouteChange}
+    >
+      <Routes>
+        <Route path="/" element={<DashboardPage />} />
+        <Route path="/videos" element={<GamesPage />} />
+        <Route path="/videos/:id" element={<VideoAnalysisPage />} />
+        <Route path="/toolbox" element={<div>Coach's Toolbox</div>} />
+        <Route path="/team" element={<TeamsPage />} />
+        <Route path="/teams/:id" element={<TeamDetailPage />} />
+      </Routes>
+    </MainLayout>
   );
-};
+}
+
+function App() {
+  return (
+    <Router>
+      <AppContent />
+    </Router>
+  );
+}
 
 export default App;
