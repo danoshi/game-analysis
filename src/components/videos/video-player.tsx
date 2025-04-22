@@ -1,14 +1,42 @@
-import {
+// components/VideoPlayer.tsx
+import React, {
   forwardRef,
   useRef,
   useImperativeHandle,
   useState,
   useEffect,
+  useCallback,
 } from "react";
-import { MobileAwareVideoControls } from "./video-mobile-controls";
-import { useVideoPlayer } from "@/hooks/use-video-player";
 import { Play, Loader2, Maximize2, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useVideoPlayer } from "@/hooks/use-video-player";
+// Assuming you want to keep using the simpler VideoControls for now
+// If you intended to use MobileAwareVideoControls, replace this import
+import { VideoControls } from "./video-controls"; // Or potentially MobileAwareVideoControls
+
+//
+// Extend <video> for iOS fullscreen API
+//
+interface HTMLVideoElementWithWebKit extends HTMLVideoElement {
+  webkitEnterFullscreen?: () => void;
+  webkitSupportsFullscreen?: boolean; // Check support
+  webkitDisplayingFullscreen?: boolean; // Check current state
+}
+
+interface FullscreenDocument extends Document {
+  webkitFullscreenElement?: Element;
+  webkitExitFullscreen?: () => void;
+  mozFullScreenElement?: Element; // Firefox
+  msFullscreenElement?: Element; // IE/Edge
+  mozCancelFullScreen?: () => void;
+  msExitFullscreen?: () => void;
+}
+
+interface FullscreenElement extends HTMLDivElement {
+  webkitRequestFullscreen?: () => void;
+  mozRequestFullScreen?: () => void;
+  msRequestFullscreen?: () => void;
+}
 
 interface VideoPlayerProps {
   url: string;
@@ -18,59 +46,21 @@ interface VideoPlayerProps {
   controls?: boolean;
 }
 
-// Add these interface definitions for fullscreen support
-interface FullscreenDocument extends Document {
-  webkitFullscreenElement?: Element;
-  mozFullScreenElement?: Element;
-  msFullscreenElement?: Element;
-  webkitExitFullscreen?: () => Promise<void>;
-  mozCancelFullScreen?: () => Promise<void>;
-  msExitFullscreen?: () => Promise<void>;
-}
-
-interface FullscreenElement extends HTMLDivElement {
-  webkitRequestFullscreen?: () => Promise<void>;
-  mozRequestFullScreen?: () => Promise<void>;
-  msRequestFullscreen?: () => Promise<void>;
-}
-
 export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(
   ({ url, onLoadStart, onCanPlay, onError, controls = true }, ref) => {
-    const internalRef = useRef<HTMLVideoElement>(null);
+    const videoRef = useRef<HTMLVideoElementWithWebKit>(null);
+    const containerRef = useRef<FullscreenElement>(null);
+
+    // playback state
     const [isLoading, setIsLoading] = useState(true);
     const [showPlayButton, setShowPlayButton] = useState(true);
     const [isFullscreen, setIsFullscreen] = useState(false);
-    const [showControls, setShowControls] = useState(true);
-    const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
     const [isMobile, setIsMobile] = useState(false);
-    useEffect(() => {
-      const handleResize = () => {
-        setIsMobile(window.innerWidth < 640 || window.innerHeight < 480);
-      };
-      handleResize();
-      window.addEventListener("resize", handleResize);
+    const [isIos, setIsIos] = useState(false);
+    // Track if controls should be visible (e.g., for auto-hide later)
+    const [showControls] = useState(true);
 
-      // Handle orientation change specifically
-      window.addEventListener("orientationchange", () => {
-        handleResize();
-        // Force controls to show briefly after orientation change
-        setShowControls(true);
-        resetControlsTimeout();
-      });
-
-      return () => {
-        window.removeEventListener("resize", handleResize);
-        window.removeEventListener("orientationchange", handleResize);
-        if (controlsTimeoutRef.current) {
-          clearTimeout(controlsTimeoutRef.current);
-        }
-      };
-    }, []);
-
-    // Allow both internal and external refs to work
-    useImperativeHandle(ref, () => internalRef.current as HTMLVideoElement);
-
+    // hook wants RefObject<HTMLVideoElement>
     const {
       isPlaying,
       currentTime,
@@ -83,498 +73,365 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(
       handleVolumeChange,
       toggleMute,
       handleSkip,
-    } = useVideoPlayer(internalRef as React.RefObject<HTMLVideoElement>);
+    } = useVideoPlayer(videoRef as React.RefObject<HTMLVideoElement>);
 
-    const containerRef = useRef<HTMLDivElement>(null);
+    // expose video element
+    useImperativeHandle(ref, () => videoRef.current!);
 
-    // Check fullscreen state
-    const checkFullscreenState = () => {
-      const doc = document as FullscreenDocument;
-      const isInFullscreen = !!(
-        doc.fullscreenElement ||
-        doc.webkitFullscreenElement ||
-        doc.mozFullScreenElement ||
-        doc.msFullscreenElement
-      );
-      setIsFullscreen(isInFullscreen);
-    };
-
-    // Handle fullscreen change events
+    // detect mobile & iOS
     useEffect(() => {
-      document.addEventListener("fullscreenchange", checkFullscreenState);
-      document.addEventListener("webkitfullscreenchange", checkFullscreenState);
-      document.addEventListener("mozfullscreenchange", checkFullscreenState);
-      document.addEventListener("MSFullscreenChange", checkFullscreenState);
+      const ua = navigator.userAgent;
+      const ios = /iPad|iPhone|iPod/.test(ua);
+      setIsIos(ios);
 
+      const updateMobile = () => {
+        // Consider touch capability and screen size for mobile detection
+        const mobile =
+          window.innerWidth < 768 || // Adjust breakpoint as needed
+          /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
+          ("ontouchstart" in window && navigator.maxTouchPoints > 0);
+        setIsMobile(mobile);
+      };
+      updateMobile();
+      window.addEventListener("resize", updateMobile);
+      window.addEventListener("orientationchange", updateMobile);
       return () => {
-        document.removeEventListener("fullscreenchange", checkFullscreenState);
-        document.removeEventListener(
-          "webkitfullscreenchange",
-          checkFullscreenState
-        );
-        document.removeEventListener(
-          "mozfullscreenchange",
-          checkFullscreenState
-        );
-        document.removeEventListener(
-          "MSFullscreenChange",
-          checkFullscreenState
-        );
+        window.removeEventListener("resize", updateMobile);
+        window.removeEventListener("orientationchange", updateMobile);
       };
     }, []);
 
-    const handleFullscreen = () => {
-      if (!containerRef.current) return;
+    // listen for standard fullscreenchange + vendor prefixes on DOCUMENT
+    useEffect(() => {
+      const onFsChange = () => {
+        const doc = document as FullscreenDocument;
+        const fsElement =
+          doc.fullscreenElement ||
+          doc.webkitFullscreenElement ||
+          doc.mozFullScreenElement ||
+          doc.msFullscreenElement ||
+          null;
+        // Update state based on whether *any* element is fullscreen in the document
+        // This is generally more reliable for standard fullscreen API
+        setIsFullscreen(!!fsElement);
+      };
+      const evts = [
+        "fullscreenchange",
+        "webkitfullscreenchange",
+        "mozfullscreenchange",
+        "MSFullscreenChange",
+      ];
+      evts.forEach((e) => document.addEventListener(e, onFsChange));
+      return () => {
+        evts.forEach((e) => document.removeEventListener(e, onFsChange));
+      };
+    }, []);
 
-      const doc = document as FullscreenDocument;
-      const element = containerRef.current as FullscreenElement;
+    // listen for iOS‐only begin/end fullscreen on the <video> itself
+    // This is needed because iOS often handles video fullscreen differently
+    useEffect(() => {
+      const videoEl = videoRef.current;
+      if (!videoEl || !isIos) return; // Only attach if iOS
 
-      if (isFullscreen) {
-        // Exit fullscreen with cross-browser support
-        if (doc.exitFullscreen) {
-          doc.exitFullscreen();
-        } else if (doc.webkitExitFullscreen) {
-          doc.webkitExitFullscreen();
-        } else if (doc.mozCancelFullScreen) {
-          doc.mozCancelFullScreen();
-        } else if (doc.msExitFullscreen) {
-          doc.msExitFullscreen();
+      const onBegin = () => setIsFullscreen(true);
+      const onEnd = () => setIsFullscreen(false);
+
+      // Check if these events are supported before adding listeners
+      if ("webkitbeginfullscreen" in videoEl) {
+        videoEl.addEventListener("webkitbeginfullscreen", onBegin);
+      }
+      if ("webkitendfullscreen" in videoEl) {
+        videoEl.addEventListener("webkitendfullscreen", onEnd);
+      }
+
+      // Fallback check using property if events aren't reliable
+      const intervalCheck = setInterval(() => {
+        if (videoEl.webkitDisplayingFullscreen !== undefined) {
+          setIsFullscreen(videoEl.webkitDisplayingFullscreen);
         }
-      } else {
-        // Enter fullscreen with cross-browser support
-        if (element.requestFullscreen) {
-          element.requestFullscreen();
-        } else if (element.webkitRequestFullscreen) {
-          element.webkitRequestFullscreen();
-        } else if (element.mozRequestFullScreen) {
-          element.mozRequestFullScreen();
-        } else if (element.msRequestFullscreen) {
-          element.msRequestFullscreen();
+      }, 500); // Check periodically
+
+      return () => {
+        if ("webkitbeginfullscreen" in videoEl) {
+          videoEl.removeEventListener("webkitbeginfullscreen", onBegin);
         }
-      }
+        if ("webkitendfullscreen" in videoEl) {
+          videoEl.removeEventListener("webkitendfullscreen", onEnd);
+        }
+        clearInterval(intervalCheck);
+      };
+    }, [isIos]); // Re-run if isIos changes (though unlikely)
 
-      // Show controls briefly when toggling fullscreen
-      setShowControls(true);
-      resetControlsTimeout();
+    // record interaction (for any future auto‑hide logic)
+    const recordInteraction = () => {
+      // Placeholder for potential auto-hide logic for controls
+      // console.log('Interaction recorded');
+      // setShowControls(true);
+      // // Set a timer to hide controls again after a delay
+      // if (hideControlsTimeout.current) clearTimeout(hideControlsTimeout.current);
+      // hideControlsTimeout.current = setTimeout(() => setShowControls(false), 3000);
     };
+    // const hideControlsTimeout = useRef<NodeJS.Timeout | null>(null);
 
-    const resetControlsTimeout = () => {
-      // Clear any existing timeout
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
-      }
+    // unified fullscreen toggle
+    const handleFullscreen = useCallback(
+      (e?: React.MouseEvent<HTMLButtonElement>) => {
+        e?.stopPropagation(); // Prevent triggering other clicks like play/pause
+        const doc = document as FullscreenDocument;
+        const container = containerRef.current;
+        const videoEl = videoRef.current;
 
-      // Set a new timeout to hide controls after 3 seconds
-      if (isPlaying && isMobile) {
-        controlsTimeoutRef.current = setTimeout(() => {
-          setShowControls(false);
-        }, 3000);
-      }
-    };
+        if (!container || !videoEl) return;
 
-    const handleInternalPlayClick = () => {
-      togglePlay();
-      setShowPlayButton(false);
-      resetControlsTimeout();
-    };
+        // Use the isFullscreen state derived from events as the source of truth
+        const currentlyFullscreen = isFullscreen;
 
-    const handleLoadStart = () => {
+        try {
+          if (!currentlyFullscreen) {
+            // --- ENTER FULLSCREEN ---
+            if (
+              isIos &&
+              videoEl.webkitSupportsFullscreen &&
+              videoEl.webkitEnterFullscreen
+            ) {
+              // Use iOS specific video fullscreen
+              videoEl.webkitEnterFullscreen();
+            } else if (container.requestFullscreen) {
+              container.requestFullscreen();
+            } else if (container.webkitRequestFullscreen) {
+              // Safari
+              container.webkitRequestFullscreen();
+            } else if (container.mozRequestFullScreen) {
+              // Firefox
+              container.mozRequestFullScreen();
+            } else if (container.msRequestFullscreen) {
+              // IE/Edge
+              container.msRequestFullscreen();
+            }
+          } else {
+            // --- EXIT FULLSCREEN ---
+            if (doc.exitFullscreen) {
+              doc.exitFullscreen();
+            } else if (doc.webkitExitFullscreen) {
+              // Safari, Chrome, Edge
+              doc.webkitExitFullscreen();
+            } else if (doc.mozCancelFullScreen) {
+              // Firefox
+              doc.mozCancelFullScreen();
+            } else if (doc.msExitFullscreen) {
+              // IE/Edge
+              doc.msExitFullscreen();
+            }
+          }
+        } catch (err) {
+          console.error("Fullscreen API error:", err);
+        }
+
+        recordInteraction();
+      },
+      [isFullscreen, isIos] // Dependencies for the callback
+    );
+
+    // loading / playback handlers
+    const handleStart = () => {
       setIsLoading(true);
       onLoadStart?.();
     };
-
-    const handleCanPlay = () => {
+    const handleLoaded = () => {
       setIsLoading(false);
       onCanPlay?.();
     };
-
-    const handleVideoTap = () => {
-      // Toggle controls visibility on mobile
-      if (isMobile) {
-        setShowControls(!showControls);
-        resetControlsTimeout();
-      }
-
-      // Only toggle play if we're not showing controls
-      if (!showControls) {
-        togglePlay();
-      }
+    const onPause = () => {
+      setShowPlayButton(true);
+      recordInteraction(); // Show controls on pause
+    };
+    const onPlay = () => {
+      setShowPlayButton(false);
+      recordInteraction(); // Show controls briefly on play
     };
 
-    // Reset controls timeout when play state changes
-    useEffect(() => {
-      resetControlsTimeout();
-    }, [isPlaying]);
-
-    // Add touch gesture support for mobile
-    useEffect(() => {
-      if (!containerRef.current || !isMobile) return;
-
-      let touchStartX = 0;
-      let touchStartY = 0;
-      let touchStartTime = 0;
-
-      const handleTouchStart = (e: TouchEvent) => {
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
-        touchStartTime = Date.now();
-      };
-
-      const handleTouchEnd = (e: TouchEvent) => {
-        if (!internalRef.current) return;
-
-        const touchEndX = e.changedTouches[0].clientX;
-        const touchEndY = e.changedTouches[0].clientY;
-        const touchEndTime = Date.now();
-
-        const xDiff = touchEndX - touchStartX;
-        const yDiff = touchEndY - touchStartY;
-        const timeDiff = touchEndTime - touchStartTime;
-
-        // If it's a quick tap with minimal movement, toggle controls
-        if (Math.abs(xDiff) < 30 && Math.abs(yDiff) < 30 && timeDiff < 300) {
-          setShowControls(!showControls);
-          resetControlsTimeout();
-          return;
-        }
-
-        // Swipe left/right for seeking (only if horizontal movement is dominant)
-        if (Math.abs(xDiff) > 60 && Math.abs(xDiff) > Math.abs(yDiff) * 1.5) {
-          if (xDiff > 0) {
-            // Swipe right: forward
-            handleSkip(15);
-          } else {
-            // Swipe left: backward
-            handleSkip(-15);
-          }
-          // Show controls briefly after seeking
-          setShowControls(true);
-          resetControlsTimeout();
-        }
-      };
-
-      const element = containerRef.current;
-      element.addEventListener("touchstart", handleTouchStart);
-      element.addEventListener("touchend", handleTouchEnd);
-
-      return () => {
-        element.removeEventListener("touchstart", handleTouchStart);
-        element.removeEventListener("touchend", handleTouchEnd);
-      };
-    }, [isMobile, togglePlay, handleSkip, showControls]);
-
-    const formatTime = (seconds: number) => {
-      const mins = Math.floor(seconds / 60);
-      const secs = Math.floor(seconds % 60);
-      return `${mins}:${secs.toString().padStart(2, "0")}`;
+    // Handle clicks on the video container itself
+    const handleContainerClick = () => {
+      if (isMobile) {
+        // On mobile, tap toggles play/pause
+        togglePlay();
+      } else {
+        // On desktop, tap could toggle controls visibility or play/pause
+        togglePlay(); // Simple toggle for now
+      }
+      recordInteraction();
     };
 
     return (
       <div className="w-full">
-        {/* Video container */}
+        {/* Container handles fullscreen requests (except iOS video) */}
         <div
           ref={containerRef}
-          className={`relative w-full mx-auto overflow-hidden ${
-            !isMobile ? "group" : ""
-          }`}
+          className={
+            "relative w-full mx-auto overflow-hidden bg-black " +
+            // Use `fixed` positioning ONLY when fullscreen AND NOT iOS video fullscreen
+            // because iOS video fullscreen handles its own layering.
+            // Standard fullscreen API needs the container pinned.
+            (isFullscreen &&
+            !(isIos && videoRef.current?.webkitDisplayingFullscreen)
+              ? "fixed inset-0 z-[999]"
+              : "group") // `group` enables hover effects for controls
+          }
+          onClick={handleContainerClick} // Handle clicks on the container
         >
           <video
-            ref={internalRef}
+            ref={videoRef}
             src={url}
-            className="w-full aspect-video bg-black object-contain rounded-md"
-            onLoadStart={handleLoadStart}
-            onCanPlay={handleCanPlay}
+            className="block w-full h-full object-contain" // Use `block` to prevent extra space below
+            onLoadStart={handleStart}
+            onCanPlay={handleLoaded}
             onError={onError}
             onTimeUpdate={handleTimeUpdate}
-            onPause={() => setShowPlayButton(true)}
-            onPlay={() => setShowPlayButton(false)}
+            onPause={onPause}
+            onPlay={onPlay}
             preload="metadata"
-            webkit-playsinline="true"
-            playsInline={true}
-            x-webkit-airplay="allow"
-            disablePictureInPicture={isMobile}
-            controls={false}
-            onClick={handleVideoTap}
+            playsInline // Essential for inline playback on iOS
+            controls={false} // Disable native controls
+            // Add crossOrigin if loading captions from different origin
+            // crossOrigin="anonymous"
           />
 
-          {/* Loading overlay */}
+          {/* --- Overlays --- */}
+
+          {/* Loading Spinner */}
           {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10 pointer-events-none">
               <Loader2 className="h-12 w-12 animate-spin text-white" />
             </div>
           )}
 
-          {/* Play button overlay - only for desktop */}
+          {/* Desktop "Big Play" Button */}
           {!isLoading && showPlayButton && !isPlaying && !isMobile && (
             <div
-              className="absolute inset-0 flex items-center justify-center bg-black/30 
-                        cursor-pointer z-20 pointer-events-auto"
-              onClick={handleInternalPlayClick}
+              className="absolute inset-0 flex items-center justify-center bg-black/30 z-10 cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent container click
+                togglePlay();
+                recordInteraction();
+              }}
             >
-              <div className="bg-white/10 rounded-full p-4 backdrop-blur-sm hover:bg-white/20 transition-all">
+              <div className="bg-white/10 rounded-full p-4 backdrop-blur-sm hover:bg-white/20 transition">
                 <Play className="h-10 w-10 text-white fill-white" />
               </div>
             </div>
           )}
 
-          {/* MOBILE UI ELEMENTS */}
-          {isMobile && controls && (
-            <>
-              {/* Fullscreen button for mobile - top right - always visible */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleFullscreen}
-                className={`absolute top-2 right-2 text-white bg-black/30 rounded-full transition-opacity ${
-                  showControls ? "opacity-100" : "opacity-0"
-                }`}
-              >
-                {isFullscreen ? (
-                  <Minimize2 className="h-6 w-6" />
-                ) : (
-                  <Maximize2 className="h-6 w-6" />
-                )}
-              </Button>
-
-              {/* Mobile controls overlay - shows/hides based on showControls state */}
-              {showControls && (
-                <div className="absolute inset-0 z-10 flex flex-col justify-end">
-                  {/* Progress bar for mobile - bottom of video */}
-                  <div className="px-2 pb-2 pt-8 bg-gradient-to-t from-black/70 to-transparent">
-                    <div className="relative">
-                      <input
-                        type="range"
-                        min="0"
-                        max={duration || 100}
-                        value={currentTime}
-                        onChange={(e) => handleSeek(Number(e.target.value))}
-                        className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer"
-                        style={{
-                          backgroundSize: `${
-                            (currentTime / (duration || 1)) * 100
-                          }% 100%`,
-                          backgroundImage: "linear-gradient(#fff, #fff)",
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Mobile controls bar */}
-                  <div className="bg-black/70 p-3 flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleSkip(-10)}
-                        className="text-white rounded-full p-2"
-                      >
-                        <svg
-                          width="24"
-                          height="24"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M12.5 8L9.5 11L12.5 14"
-                            stroke="white"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <path
-                            d="M10 11H16.5"
-                            stroke="white"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                          />
-                          <path
-                            d="M5.98898 11.91C5.61061 13.4271 5.83477 15.0334 6.61429 16.3837C7.39382 17.734 8.67246 18.7212 10.1531 19.1044C11.6338 19.4877 13.2069 19.2389 14.5136 18.4142C15.8204 17.5896 16.7368 16.262 17.0298 14.75M18.0111 12.09C18.3895 10.5729 18.1653 8.96665 17.3858 7.61635C16.6062 6.26605 15.3276 5.27878 13.847 4.89551C12.3663 4.51223 10.7932 4.76108 9.48646 5.58574C8.17968 6.4104 7.26324 7.73801 6.97024 9.25"
-                            stroke="white"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </Button>
-
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={togglePlay}
-                        className="text-white rounded-full p-2"
-                      >
-                        {isPlaying ? (
-                          <svg
-                            width="24"
-                            height="24"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              d="M8 5V19M16 5V19"
-                              stroke="white"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        ) : (
-                          <svg
-                            width="24"
-                            height="24"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              d="M6 4L18 12L6 20V4Z"
-                              fill="white"
-                              stroke="white"
-                              strokeWidth="2"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        )}
-                      </Button>
-
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleSkip(10)}
-                        className="text-white rounded-full p-2"
-                      >
-                        <svg
-                          width="24"
-                          height="24"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M11.5 8L14.5 11L11.5 14"
-                            stroke="white"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <path
-                            d="M14 11H7.5"
-                            stroke="white"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                          />
-                          <path
-                            d="M5.98898 11.91C5.61061 13.4271 5.83477 15.0334 6.61429 16.3837C7.39382 17.734 8.67246 18.7212 10.1531 19.1044C11.6338 19.4877 13.2069 19.2389 14.5136 18.4142C15.8204 17.5896 16.7368 16.262 17.0298 14.75M18.0111 12.09C18.3895 10.5729 18.1653 8.96665 17.3858 7.61635C16.6062 6.26605 15.3276 5.27878 13.847 4.89551C12.3663 4.51223 10.7932 4.76108 9.48646 5.58574C8.17968 6.4104 7.26324 7.73801 6.97024 9.25"
-                            stroke="white"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </Button>
-                    </div>
-
-                    <div className="text-white text-xs">
-                      {formatTime(currentTime)} / {formatTime(duration)}
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={toggleMute}
-                        className="text-white rounded-full p-2"
-                      >
-                        {isMuted ? (
-                          <svg
-                            width="24"
-                            height="24"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              d="M11 5L6 9H2V15H6L11 19V5Z"
-                              stroke="white"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                            <path
-                              d="M22 9L16 15"
-                              stroke="white"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                            <path
-                              d="M16 9L22 15"
-                              stroke="white"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        ) : (
-                          <svg
-                            width="24"
-                            height="24"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              d="M11 5L6 9H2V15H6L11 19V5Z"
-                              stroke="white"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                            <path
-                              d="M15.54 8.46C16.4774 9.39764 17.004 10.6692 17.004 11.995C17.004 13.3208 16.4774 14.5924 15.54 15.53"
-                              stroke="white"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                            <path
-                              d="M18.07 5.93C19.9447 7.80528 20.9979 10.3447 20.9979 13C20.9979 15.6553 19.9447 18.1947 18.07 20.07"
-                              stroke="white"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+          {/* --- Persistent Top-Right Fullscreen Toggle --- */}
+          {controls && ( // Only show if controls are enabled
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleFullscreen} // Always use the unified handler
+              className={
+                "absolute top-2 right-2 z-20 text-white bg-black/30 rounded-full hover:bg-black/50 transition-opacity " +
+                // Use fixed positioning if the *container* is fullscreen
+                // This ensures it stays top-right even if the video element itself isn't the fullscreen root
+                (isFullscreen &&
+                !(isIos && videoRef.current?.webkitDisplayingFullscreen)
+                  ? "fixed"
+                  : "absolute")
+                // Consider adding opacity transition based on showControls state if implementing auto-hide
+                // + (showControls ? "opacity-100" : "opacity-0")
+              }
+              aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+            >
+              {isFullscreen ? (
+                <Minimize2 className="h-5 w-5 sm:h-6 sm:w-6" /> // Slightly larger on bigger screens
+              ) : (
+                <Maximize2 className="h-5 w-5 sm:h-6 sm:w-6" />
               )}
-            </>
+            </Button>
           )}
 
-          {/* DESKTOP CONTROLS - Standard UI with hover effect */}
-          {!isMobile && controls && (
-            <div className="absolute bottom-0 left-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
-              <MobileAwareVideoControls
+          {/* --- Bottom Controls Bar --- */}
+          {/*
+            Conditionally render or style the controls container.
+            Using `group-hover` for desktop, potentially always visible on mobile,
+            or implementing tap-to-show/auto-hide logic via `showControls` state.
+            For simplicity now, stick to group-hover + always visible if mobile?
+            Or just group-hover for now.
+          */}
+          {controls && (
+            <div
+              className={
+                "absolute bottom-0 left-0 right-0 z-10 transition-opacity duration-300 pointer-events-none " +
+                // Show on group hover (desktop), or always if mobile? Or use showControls state?
+                // Let's start with group-hover and always if mobile for simplicity
+                (isMobile
+                  ? "opacity-100"
+                  : "opacity-0 group-hover:opacity-100") +
+                // Ensure controls inside are clickable when visible
+                (showControls || isMobile ? " pointer-events-auto" : "")
+              }
+              // Prevent clicks on the controls bar propagating to the container (play/pause)
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/*
+                Choose which controls component to use.
+                If MobileAwareVideoControls is desired, import and use it here,
+                passing the isMobile prop.
+              */}
+              <VideoControls
                 isPlaying={isPlaying}
                 duration={duration}
                 currentTime={currentTime}
                 volume={volume}
                 isMuted={isMuted}
-                onPlayPause={togglePlay}
-                onSeek={handleSeek}
-                onVolumeChange={handleVolumeChange}
-                onToggleMute={toggleMute}
-                onSkip={handleSkip}
-                onFullscreen={handleFullscreen}
-                isMobile={false}
+                onPlayPause={() => {
+                  togglePlay();
+                  recordInteraction();
+                }}
+                onSeek={(t) => {
+                  handleSeek(t);
+                  recordInteraction();
+                }}
+                onVolumeChange={(v) => {
+                  handleVolumeChange(v);
+                  recordInteraction();
+                }}
+                onToggleMute={() => {
+                  toggleMute();
+                  recordInteraction();
+                }}
+                onSkip={(s) => {
+                  handleSkip(s);
+                  recordInteraction();
+                }}
+                // Pass down fullscreen handler if the controls need it
+                // onFullscreen={handleFullscreen}
+                // Pass down isMobile if using MobileAwareVideoControls
+                // isMobile={isMobile}
               />
             </div>
           )}
+
+          {/* Minimal Mobile Fullscreen Overlay (Optional - consider if needed) */}
+          {/* This might be redundant if controls are handled well */}
+          {/* {isMobile && isFullscreen && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  togglePlay();
+                }}
+                className="text-white bg-black/30 rounded-full p-3 pointer-events-auto"
+                aria-label={isPlaying ? "Pause" : "Play"}
+              >
+                {isPlaying ? (
+                  <Pause className="h-6 w-6" />
+                ) : (
+                  <Play className="h-6 w-6" />
+                )}
+              </Button>
+            </div>
+          )} */}
         </div>
       </div>
     );

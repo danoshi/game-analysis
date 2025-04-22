@@ -1,3 +1,4 @@
+// components/VideoControls.tsx
 import { Button } from "@/components/ui/button";
 import {
   Play,
@@ -6,11 +7,10 @@ import {
   SkipForward,
   Volume2,
   VolumeX,
-  Maximize2,
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 
-interface VideoControlsProps {
+export interface VideoControlsProps {
   isPlaying: boolean;
   duration: number;
   currentTime: number;
@@ -21,7 +21,6 @@ interface VideoControlsProps {
   onVolumeChange: (volume: number) => void;
   onToggleMute: () => void;
   onSkip: (seconds: number) => void;
-  onFullscreen: () => void;
 }
 
 export function VideoControls({
@@ -35,21 +34,22 @@ export function VideoControls({
   onVolumeChange,
   onToggleMute,
   onSkip,
-  onFullscreen,
 }: VideoControlsProps) {
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60)
+      .toString()
+      .padStart(2, "0");
+    return `${m}:${sec}`;
   };
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 pb-4">
       <Slider
         value={[currentTime]}
         max={duration}
         step={1}
-        onValueChange={([value]) => onSeek(value)}
+        onValueChange={([v]) => onSeek(v)}
         className="mb-4"
       />
 
@@ -63,7 +63,6 @@ export function VideoControls({
           >
             <SkipBack className="h-5 w-5" />
           </Button>
-
           <Button
             variant="ghost"
             size="icon"
@@ -76,7 +75,6 @@ export function VideoControls({
               <Play className="h-5 w-5" />
             )}
           </Button>
-
           <Button
             variant="ghost"
             size="icon"
@@ -85,43 +83,31 @@ export function VideoControls({
           >
             <SkipForward className="h-5 w-5" />
           </Button>
-
           <span className="text-white text-sm">
             {formatTime(currentTime)} / {formatTime(duration)}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onToggleMute}
-              className="text-white"
-            >
-              {isMuted ? (
-                <VolumeX className="h-5 w-5" />
-              ) : (
-                <Volume2 className="h-5 w-5" />
-              )}
-            </Button>
-            <Slider
-              value={[isMuted ? 0 : volume]}
-              max={1}
-              step={0.1}
-              onValueChange={([value]) => onVolumeChange(value)}
-              className="w-24"
-            />
-          </div>
-
           <Button
             variant="ghost"
             size="icon"
-            onClick={onFullscreen}
+            onClick={onToggleMute}
             className="text-white"
           >
-            <Maximize2 className="h-5 w-5" />
+            {isMuted ? (
+              <VolumeX className="h-5 w-5" />
+            ) : (
+              <Volume2 className="h-5 w-5" />
+            )}
           </Button>
+          <Slider
+            value={[isMuted ? 0 : volume]}
+            max={1}
+            step={0.1}
+            onValueChange={([v]) => onVolumeChange(v)}
+            className="w-24"
+          />
         </div>
       </div>
     </div>
