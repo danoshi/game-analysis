@@ -6,69 +6,61 @@ export const teamSections: Record<number, TeamSection[]> = {
   1: [
     {
       id: "pressing",
-      title: "Pressing",
+      title: "TBD",
       content: [
-        { type: "heading", text: "High Press vs. Low Block" },
+        { type: "heading", text: "TBD" },
         {
           type: "paragraph",
-          text: "Our lads push up in man‑to‑man to force errors. When they drop, we sit compact.",
+          text: "TBD",
         },
         {
           type: "list",
-          items: [
-            "Always press the back‑line.",
-            "Cover passing lanes.",
-            "Force play down the wings.",
-          ],
+          items: ["TBD"],
         },
         {
           type: "image",
           src: "/images/pressing-diagram.png",
-          alt: "Pressing shape diagram",
+          alt: "TBD",
         },
       ],
     },
     {
       id: "build_up",
-      title: "Build‑Up Play",
+      title: "TBD",
       content: [
         {
           type: "paragraph",
-          text: "From the back we want to play short passes into the half‑spaces and free man.",
+          text: "TBD",
         },
         {
           type: "image",
           src: "/images/build-up.png",
-          alt: "Build‑up arrows",
+          alt: "TBD",
         },
       ],
     },
     {
       id: "set_pieces",
-      title: "Set Pieces",
+      title: "TBD",
       content: [
-        { type: "heading", text: "Corners" },
+        { type: "heading", text: "TBD" },
         {
           type: "paragraph",
-          text: "At corners we aim for the near post flick‑on or the far post overload.",
+          text: "TBD",
         },
         {
           type: "list",
-          items: [
-            "2 runners to near post",
-            "1 overload far post",
-            "1 recycled at top of box",
-          ],
+          items: ["TBD"],
         },
       ],
     },
     {
       id: "team_notes",
-      title: "What to Watch For",
+      title: "TBD",
       content: [
         {
           type: "paragraph",
-          text: "They love to switch play quickly — be ready to shift across.",
+          text: "TBD",
         },
       ],
     },

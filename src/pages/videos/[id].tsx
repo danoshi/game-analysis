@@ -1,5 +1,5 @@
 // pages/VideoAnalysisPage.tsx
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ const VideoAnalysisPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const windowSize = useWindowSize();
+  const gridRef = useRef<HTMLDivElement>(null);
 
   // find game & its videos
   const game = games.find((g) => g.id === Number(id));
@@ -34,12 +35,16 @@ const VideoAnalysisPage: React.FC = () => {
 
   // pagination state for desktop
   const [currentPage, setCurrentPage] = useState(0);
-  const getVideosPerPage = () => {
-    if (windowSize.width < 640) return 1; // mobile ignores grid
-    if (windowSize.width < 1024) return 4; // tablet
-    return 9; // desktop
-  };
-  const videosPerPage = getVideosPerPage();
+
+  // Use a consistent videosPerPage calculation
+  const videosPerPage = useMemo(() => {
+    if (windowSize.width < 640) return 1; // mobile
+    if (windowSize.width < 768) return 2; // small tablet
+    if (windowSize.width < 1024) return 3; // tablet
+    if (windowSize.width < 1280) return 4; // small desktop
+    return 6; // large desktop
+  }, [windowSize.width]);
+
   const totalPages = Math.ceil(allGameVideos.length / videosPerPage);
 
   // slice for desktop grid
@@ -50,12 +55,10 @@ const VideoAnalysisPage: React.FC = () => {
 
   // clamp page if layout changes
   useEffect(() => {
-    if (currentPage >= totalPages) {
+    if (currentPage >= totalPages && totalPages > 0) {
       setCurrentPage(Math.max(0, totalPages - 1));
     }
   }, [totalPages, currentPage]);
-
-  if (!game) return <div>Game not found</div>;
 
   // helpers for mobile prev/next
   const idx = selectedVideo
@@ -69,6 +72,8 @@ const VideoAnalysisPage: React.FC = () => {
   const goNext = () => {
     if (!isLast) setSelectedVideo(allGameVideos[idx + 1]);
   };
+
+  if (!game) return <div>Game not found</div>;
 
   return (
     <div className="w-full px-4 sm:px-6 md:px-8 space-y-6">
@@ -112,10 +117,7 @@ const VideoAnalysisPage: React.FC = () => {
         <CardContent className="p-3">
           <h2 className="text-sm font-medium mb-2">Game Videos</h2>
 
-          {/*  
-            MOBILE: show prev/select/next  
-            sm+: hide this block 
-          */}
+          {/* MOBILE UI - RESTORED */}
           <div className="flex items-center gap-2 mb-4 sm:hidden">
             <Button
               variant="outline"
@@ -151,75 +153,115 @@ const VideoAnalysisPage: React.FC = () => {
             </Button>
           </div>
 
-          {/*  
-            DESKTOP/TABLET: grid & pagination  
-            hidden on mobile (sm:hidden)  
-          */}
+          {/* DESKTOP/TABLET GRID */}
           <div className="hidden sm:block">
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-3">
-              {currentVideos.map((video) => (
-                <div
-                  key={video.id}
-                  className="cursor-pointer"
-                  onClick={() => setSelectedVideo(video)}
-                >
+            <div
+              ref={gridRef}
+              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 mb-4"
+            >
+              {currentVideos.map((video) => {
+                const isSelected = selectedVideo?.id === video.id;
+
+                return (
                   <div
-                    className={`rounded overflow-hidden ${
-                      selectedVideo?.id === video.id
-                        ? "ring-2 ring-primary bg-primary/5"
-                        : "hover:bg-gray-50 dark:hover:bg-gray-800"
-                    }`}
+                    key={video.id}
+                    onClick={() => setSelectedVideo(video)}
+                    className="cursor-pointer group"
                   >
-                    <div className="aspect-video h-24 bg-gray-200 dark:bg-gray-800 relative">
+                    {/* Thumbnail container */}
+                    <div
+                      className={`
+                      aspect-video rounded-md overflow-hidden relative
+                      transition-all duration-200
+                      ${
+                        isSelected
+                          ? "ring-2 ring-primary"
+                          : "hover:ring-2 hover:ring-gray-300"
+                      }
+                    `}
+                    >
+                      {/* Thumbnail image */}
+                      <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800"></div>
+
+                      {/* Overlay for selected state */}
                       <div
-                        className={`absolute inset-0 flex items-center justify-center 
-                          bg-black/30 transition-opacity ${
-                            selectedVideo?.id === video.id
-                              ? "opacity-100"
-                              : "opacity-0 group-hover:opacity-100"
-                          }`}
+                        className={`
+                        absolute inset-0 flex items-center justify-center
+                        ${
+                          isSelected
+                            ? "bg-primary/10"
+                            : "bg-black/20 opacity-0 group-hover:opacity-100"
+                        }
+                        transition-opacity duration-200
+                      `}
                       >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="currentColor"
-                          className="w-6 h-6 text-white"
+                        {/* Play icon */}
+                        <div
+                          className={`
+                          rounded-full bg-white/20 p-2 backdrop-blur-sm
+                          transition-all duration-200
+                        `}
                         >
-                          <path
-                            fillRule="evenodd"
-                            clipRule="evenodd"
-                            d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 
-                              6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z"
-                          />
-                        </svg>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            className="w-5 h-5 text-white"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z"
+                            />
+                          </svg>
+                        </div>
                       </div>
+
+                      {/* Playing indicator dot */}
+                      {isSelected && (
+                        <div className="absolute bottom-1.5 left-1/2 transform -translate-x-1/2 flex space-x-1">
+                          <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
+                          <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
+                          <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
+                        </div>
+                      )}
                     </div>
+
+                    {/* Video title */}
+                    <p
+                      className={`
+                      mt-2 text-xs font-medium line-clamp-1
+                      ${isSelected ? "text-primary" : ""}
+                    `}
+                    >
+                      {video.title}
+                    </p>
                   </div>
-                  <p className="mt-1 text-xs font-medium line-clamp-2">
-                    {video.title}
-                  </p>
-                </div>
-              ))}
+                );
+              })}
             </div>
+
+            {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex justify-center">
+              <div className="flex justify-center items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-7 px-2 mr-2"
                   onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
                   disabled={currentPage === 0}
                 >
                   <ChevronLeftIcon className="h-4 w-4 mr-1" />
                   Prev
                 </Button>
-                <span className="text-xs text-muted-foreground px-2">
-                  {currentPage + 1} / {totalPages}
-                </span>
+
+                <div className="flex items-center">
+                  <span className="text-sm">
+                    Page {currentPage + 1} of {totalPages}
+                  </span>
+                </div>
+
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-7 px-2 ml-2"
                   onClick={() =>
                     setCurrentPage((p) => Math.min(totalPages - 1, p + 1))
                   }
@@ -239,7 +281,6 @@ const VideoAnalysisPage: React.FC = () => {
         <div className="space-y-4">
           <Card className="w-full">
             <CardContent className="p-4">
-              {/* full‑width on mobile/tablet */}
               <div className="w-full">
                 <VideoPlayer key={selectedVideo.id} url={selectedVideo.url} />
               </div>
@@ -301,7 +342,7 @@ const VideoAnalysisPage: React.FC = () => {
                     <CardContent className="p-4">
                       <div
                         className="aspect-video mb-2 rounded-md overflow-hidden bg-muted 
-                                      flex items-center justify-center"
+                                    flex items-center justify-center"
                       >
                         <span className="text-sm text-muted-foreground">
                           {vid.title}

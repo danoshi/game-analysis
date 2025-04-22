@@ -74,6 +74,10 @@ export function Sidebar({
                 onClick={(e) => {
                   e.preventDefault();
                   onRouteChange(route.href);
+                  // Close sidebar on mobile after navigation
+                  if (window.innerWidth < 768 && onClose) {
+                    onClose();
+                  }
                 }}
                 className={cn(
                   "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
