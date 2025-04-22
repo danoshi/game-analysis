@@ -1,6 +1,6 @@
 import type { TeamSection } from "@/types/team";
 
-const CLOUDFRONT_URL = "https://dik6ttc5elg95.cloudfront.net";
+//const CLOUDFRONT_URL = "https://dik6ttc5elg95.cloudfront.net";
 
 export const teamSections: Record<number, TeamSection[]> = {
   1: [
