@@ -79,3 +79,71 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Video.js customizations using Tailwind colors */
+@layer components {
+  .video-js {
+    @apply font-sans;
+  }
+  
+  .video-js .vjs-control-bar {
+    @apply bg-gradient-to-t from-black/80 to-transparent;
+  }
+  
+  .video-js .vjs-slider {
+    @apply bg-white/30;
+  }
+  
+  .video-js .vjs-load-progress {
+    @apply bg-white/40;
+  }
+  
+  .video-js .vjs-play-progress {
+    @apply bg-primary;
+  }
+  
+  .video-js .vjs-loading-spinner {
+    @apply border-t-primary border-r-transparent border-b-transparent border-l-transparent;
+  }
+  
+  /* Mobile optimizations */
+  @media (max-width: 768px) {
+    .video-js .vjs-control-bar {
+      @apply text-base h-16;
+    }
+    
+    .video-js .vjs-button {
+      @apply p-2 min-w-11 min-h-11;
+    }
+    
+    .video-js .vjs-play-control {
+      @apply text-3xl;
+    }
+    
+    .video-js .vjs-fullscreen-control {
+      @apply text-2xl;
+    }
+    
+    .video-js .vjs-progress-control {
+      @apply h-3;
+    }
+    
+    .video-js .vjs-progress-holder {
+      @apply h-3;
+    }
+  }
+  
+  /* Fullscreen styling */
+  .video-js.vjs-fullscreen {
+    @apply fixed inset-0 z-[9999] w-full h-full;
+  }
+  
+  /* Hide native controls on iOS */
+  .video-js .vjs-tech::-webkit-media-controls {
+    display: none !important;
+  }
+  
+  .video-js .vjs-tech::-webkit-media-controls-enclosure {
+    display: none !important;
+  }
+}
